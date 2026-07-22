@@ -453,6 +453,46 @@ func HtableParseValueSingle(jsonval string) (string, error) {
 	return parsedval.String(), nil
 }
 
+func PutFilehttpTimeout(filemame string, contenttype string, urlstr string, seconds time.Duration) (string, error) {
+	var err error
+
+	// put file to url
+	file, err := os.Open(filemame)
+	if err != nil {
+		return "", err
+	}
+
+	defer file.Close()
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest("PUT", urlstr, file)
+	if err != nil {
+		return "", err
+	}
+
+	req.ContentLength = fileInfo.Size()
+	req.Header.Set("Content-Type", contenttype)
+	req.Header.Add("User-Agent", "pgrtools")
+	http.DefaultClient.Timeout = seconds * time.Second
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+	curlBody, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(curlBody), nil
+}
+
 func RegDeleteAOR(aorval string, urlval string) (bool, error) {
 	sendJsonStr, _ := sjson.Set("", "jsonrpc", "2.0")
 	sendJsonStr, _ = sjson.Set(sendJsonStr, "method", "ul.rm")
